@@ -16,6 +16,17 @@ npm start
 3. **Open dashboard**
 Visit http://localhost:3000 in your browser.
 
+## Command line
+
+You can also parse an exported `aux-addon.lua` and fetch pricing data from the
+terminal. Pass the path to the Lua file and optionally the realm name:
+
+```bash
+node cli.js path/to/aux-addon.lua [realm]
+```
+
+Results will be printed in descending order of global ROI.
+
 ## Usage & Debugging
 
 - Click **Choose File** and select your `aux-addon.lua`.
