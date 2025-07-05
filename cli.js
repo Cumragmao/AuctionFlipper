@@ -3,6 +3,40 @@ const fs = require('fs');
 const path = require('path');
 const { fetchItem } = require('./server/services/wowauctions');
 const { fetchItemInfo } = require('./server/services/turtleDB');
+const luaJson = require('./server/node_modules/lua-json');
+
+function parseAux(text) {
+  const tableStr = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1);
+  const data = luaJson.parse('return ' + tableStr);
+
+  const history = {};
+  const post = {};
+
+  const collect = (obj) => {
+    if (!obj) return;
+    if (obj.post) {
+      for (const [id, val] of Object.entries(obj.post)) {
+        const parts = String(val).split('#');
+        const buyout = parseFloat(parts[2] || parts[1]);
+        if (!isNaN(buyout)) post[id] = buyout;
+      }
+    }
+    if (obj.history) {
+      for (const [id, val] of Object.entries(obj.history)) {
+        const nums = String(val)
+          .split(/[#@;]/)
+          .map(Number)
+          .filter(n => !isNaN(n) && n < 1e7);
+        if (!history[id]) history[id] = [];
+        history[id].push(...nums);
+      }
+    }
+  };
+
+  if (data.faction) Object.values(data.faction).forEach(collect);
+  if (data.character) Object.values(data.character).forEach(collect);
+
+=======
 
 function parseAux(text) {
   const history = {};
