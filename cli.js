@@ -19,6 +19,9 @@ function parseAux(text) {
         const parts = String(val).split('#');
         const buyout = parseFloat(parts[2] || parts[1]);
         if (!isNaN(buyout) && buyout > 0) post[id] = buyout;
+
+        if (!isNaN(buyout)) post[id] = buyout;
+
       }
     }
     if (obj.history) {
@@ -27,6 +30,7 @@ function parseAux(text) {
           .split(/[#@;]/)
           .map(Number)
           .filter(n => !isNaN(n) && n < 1e7 && n > 0);
+          .filter(n => !isNaN(n) && n < 1e7);
         if (!history[id]) history[id] = [];
         history[id].push(...nums);
       }
@@ -35,6 +39,29 @@ function parseAux(text) {
 
   if (data.faction) Object.values(data.faction).forEach(collect);
   if (data.character) Object.values(data.character).forEach(collect);
+
+function parseAux(text) {
+  const history = {};
+  const post = {};
+
+  const histBlock = /\["history"\]\s*=\s*{([\s\S]*?)\n\s*},/m.exec(text);
+  if (histBlock) {
+    histBlock[1].split(/[\r\n,]+/).forEach(line => {
+      const m = line.match(/\["(\d+:\d+)"\]\s*=\s*"[^\d]*(\d+)(?:#|$)/);
+      if (m) {
+        history[m[1]] = history[m[1]] || [];
+        history[m[1]].push(Number(m[2]));
+      }
+    });
+  }
+
+  const postBlock = /\["post"\]\s*=\s*{([\s\S]*?)\n\s*},/m.exec(text);
+  if (postBlock) {
+    postBlock[1].split(/[\r\n,]+/).forEach(line => {
+      const m = line.match(/\["(\d+:\d+)"\]\s*=\s*"[^\d]*(?:\d+)#([\d.]+)/);
+      if (m) post[m[1]] = Number(m[2]);
+    });
+  }
 
   return { history, post };
 }
@@ -60,6 +87,9 @@ async function main() {
     const localMin = values.length ? Math.min(...values) : current;
     const localMax = values.length ? Math.max(...values) : current;
     const roiLocal = current > 0 ? ((localMax - current) / current) * 100 : 0;
+    const localMin = hist.length ? Math.min(...hist, current) : current;
+    const localMax = hist.length ? Math.max(...hist, current) : current;
+    const roiLocal = ((localMax - current) / current) * 100;
 
     let external, metadata;
     try {
@@ -72,6 +102,8 @@ async function main() {
     }
 
     const roiGlobal = external.globalMax && current > 0
+    const roiGlobal = external.globalMax
+
       ? ((external.globalMax - current) / current) * 100
       : 0;
 
