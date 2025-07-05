@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AH Flip Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <h1>AH Flip Dashboard (Turtle WoW)</h1>
+  <p>Open DevTools (F12) to see logs for parsing and network requests.</p>
+  <input type="file" id="fileInput" accept=".lua" />
+  <button id="refreshBtn" disabled>Refresh Data</button>
+  <div id="lastUpdated"></div>
+
+  <div id="filters">
+    <label>Global vs. Local ROI ≥ <input id="roiThreshold" type="number" value="10" />%</label>
+    <label>Min Global Volume ≥ <input id="minVolume" type="number" value="5" /></label>
+  </div>
+
+  <table id="results">
+    <thead>
+      <tr>
+        <th>Item</th>
+        <th>Local</th>
+        <th>Local Min</th>
+        <th>Local Max</th>
+        <th>Global Avg</th>
+        <th>Global Vol</th>
+        <th>ROI Local</th>
+        <th>ROI Global</th>
+        <th>Craft Margin</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script src="script.js"></script>
+</body>
+</html>
