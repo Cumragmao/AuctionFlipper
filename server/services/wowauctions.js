@@ -38,7 +38,7 @@ async function fetchItem(realm, itemId) {
     cache.set(key, result);
     return result;
   }
-=======
+
 
   // Some pages redirect to a slugged URL (e.g. .../item-name-<id>) which
   // axios fails to follow correctly in this environment. Perform the first

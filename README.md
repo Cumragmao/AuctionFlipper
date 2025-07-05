@@ -26,6 +26,7 @@ node cli.js path/to/aux-addon.lua [realm]
 ```
 
 
+
 If network access to WowAuctions or TurtleDB is unavailable, enable offline mode
 to use mock data:
 
@@ -33,7 +34,6 @@ to use mock data:
 OFFLINE=1 node cli.js path/to/aux-addon.lua
 ```
 
-=======
 
 Results will be printed in descending order of global ROI.
 
