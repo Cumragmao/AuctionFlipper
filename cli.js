@@ -3,31 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { fetchItem } = require('./server/services/wowauctions');
 const { fetchItemInfo } = require('./server/services/turtleDB');
-
-function parseAux(text) {
-  const history = {};
-  const post = {};
-
-  const histBlock = /\["history"\]\s*=\s*{([\s\S]*?)\n\s*},/m.exec(text);
-  if (histBlock) {
-    histBlock[1].split(/[\r\n,]+/).forEach(line => {
-      const m = line.match(/\["(\d+:\d+)"\]\s*=\s*"[^\d]*(\d+)(?:#|$)/);
-      if (m) {
-        history[m[1]] = history[m[1]] || [];
-        history[m[1]].push(Number(m[2]));
-      }
-    });
-  }
-
-  const postBlock = /\["post"\]\s*=\s*{([\s\S]*?)\n\s*},/m.exec(text);
-  if (postBlock) {
-    postBlock[1].split(/[\r\n,]+/).forEach(line => {
-      const m = line.match(/\["(\d+:\d+)"\]\s*=\s*"[^\d]*(?:\d+)#([\d.]+)/);
-      if (m) post[m[1]] = Number(m[2]);
-    });
-  }
-  return { history, post };
-}
+const { parseAux } = require('./parseAux');
 
 async function main() {
   const [,, filePath, realm = 'nordanaar'] = process.argv;

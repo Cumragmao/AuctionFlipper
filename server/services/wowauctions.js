@@ -11,7 +11,30 @@ async function fetchItem(realm, itemId) {
   }
   const url = `https://www.wowauctions.net/auctionHouse/turtle-wow/${realm}/mergedAh/${itemId}`;
   console.log(`Scraping WowAuctions URL: ${url}`);
-  const { data: html } = await axios.get(url);
+
+  // Some pages redirect to a slugged URL (e.g. .../item-name-<id>) which
+  // axios fails to follow correctly in this environment. Perform the first
+  // request with redirects disabled so we can manually follow the provided
+  // location header.
+  let html;
+  try {
+    const resp = await axios.get(url, {
+      maxRedirects: 0,
+      validateStatus: status => status >= 200 && status < 400
+    });
+    if (resp.status >= 300 && resp.headers.location) {
+      const next = resp.headers.location.startsWith('http')
+        ? resp.headers.location
+        : `https://www.wowauctions.net${resp.headers.location}`;
+      console.log(`Following redirect to ${next}`);
+      html = (await axios.get(next)).data;
+    } else {
+      html = resp.data;
+    }
+  } catch (err) {
+    console.error(`Request failed for ${itemId}:`, err.message);
+    throw err;
+  }
   const $ = cheerio.load(html);
   const avgPrice = parseFloat($('.average-price').text().replace(/\D/g, '')) || 0;
   const listings = $('.listing-row .price')

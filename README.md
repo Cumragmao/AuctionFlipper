@@ -27,6 +27,17 @@ node cli.js path/to/aux-addon.lua [realm]
 
 Results will be printed in descending order of global ROI.
 
+### Build item database
+
+To extract all item metadata from an exported Lua file run:
+
+```bash
+node buildItemDb.js path/to/aux-addon.lua
+```
+
+This writes `itemLibrary.json` which contains id, name and other fields for
+every item found in the addon data.
+
 ## Usage & Debugging
 
 - Click **Choose File** and select your `aux-addon.lua`.

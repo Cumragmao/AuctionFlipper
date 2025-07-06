@@ -1,15 +1,26 @@
 (async () => {
   const fileInput = document.getElementById('fileInput');
   const refreshBtn = document.getElementById('refreshBtn');
+  const convertBtn = document.getElementById('convertBtn');
+  const formatSelect = document.getElementById('formatSelect');
+  const logWindow = document.getElementById('logWindow');
   const lastUpdated = document.getElementById('lastUpdated');
   const tbody = document.querySelector('#results tbody');
   let auxText = '';
   let dataMetrics = [];
+  let itemLibrary = {};
+
+  function log(msg) {
+    logWindow.textContent += msg + '\n';
+  }
 
   fileInput.addEventListener('change', async e => {
+    logWindow.textContent = '';
     auxText = await e.target.files[0].text();
     console.info('Aux file loaded, size:', auxText.length);
+    log('File loaded.');
     refreshBtn.disabled = false;
+    convertBtn.disabled = false;
     await loadData();
   });
 
@@ -21,15 +32,56 @@
     refreshBtn.disabled = false;
   });
 
+  convertBtn.addEventListener('click', () => {
+    if (!auxText) {
+      log('No file loaded.');
+      return;
+    }
+    try {
+      const { history, post, items: library } = parseAux(auxText);
+      itemLibrary = library;
+      const format = formatSelect.value;
+      log(`Converting to ${format.toUpperCase()}...`);
+      let out = '';
+      if (format === 'csv') {
+        out += 'item_id,current_price,history\n';
+        Object.keys(post).forEach(id => {
+          const hist = (history[id] || []).join(';');
+          out += `${id},${post[id]},"${hist}"\n`;
+        });
+      } else {
+        Object.keys(post).forEach(id => {
+          const hist = (history[id] || []).join(';');
+          out += `INSERT INTO items (item_id,current_price,history) VALUES ('${id}',${post[id]},'${hist}');\n`;
+        });
+      }
+      const blob = new Blob([out], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `aux-data.${format}`;
+      a.click();
+      URL.revokeObjectURL(url);
+      log('Download started.');
+    } catch (err) {
+      console.error(err);
+      log('Conversion failed: ' + err.message);
+    }
+  });
+
   async function loadData() {
     console.group('Data Load');
     console.log('Starting data load...');
-    const { history, post } = parseAux(auxText);
-    console.log(`History entries: ${Object.keys(history).length}`);
-    console.log(`Post entries: ${Object.keys(post).length}`);
+    log('Parsing file...');
+    const { history, post, items: library } = parseAux(auxText);
+    itemLibrary = library;
+    log(`History entries: ${Object.keys(history).length}`);
+    log(`Item library entries: ${Object.keys(itemLibrary).length}`);
+    log(`Post entries: ${Object.keys(post).length}`);
 
     const ids = Object.keys(post);
     const realm = 'nordanaar';
+    log('Fetching external data...');
 
     dataMetrics = await Promise.all(
       ids.map(async id => {
@@ -46,6 +98,7 @@
           ({ external, metadata } = await resp.json());
         } catch (err) {
           console.error(`Fetch failed for item ${id}:`, err.message);
+          log(`Item ${id} failed: ${err.message}`);
           external = { avgPrice:0, volume:0, globalMin:null, globalMax:null };
           metadata = { name:id, quality:0, icon:null, craftCost:null };
         }
@@ -77,6 +130,7 @@
     renderTable();
     lastUpdated.textContent = `Last updated: ${new Date().toLocaleString()}`;
     console.info('Table updated.');
+    log('Table updated.');
   }
 
   function renderTable() {
@@ -111,6 +165,7 @@
     console.group('Parsing Aux');
     const history = {};
     const post = {};
+    const items = {};
 
     const histBlock = /\["history"\]\s*=\s*{([\s\S]*?)\n\s*},/m.exec(text);
     if (histBlock) {
@@ -137,7 +192,43 @@
       console.warn('No ["post"] block found');
     }
 
+    const itemsBlock = /\["items"\]\s*=\s*{([\s\S]*?)\n\s*},/m.exec(text);
+    if (itemsBlock) {
+      itemsBlock[1].split(/\r?\n/).forEach(line => {
+        const m = line.match(/\[(\d+)\]\s*=\s*"([^"]+)"/);
+        if (m) {
+          const id = m[1];
+          const p = m[2].split('#');
+          items[id] = {
+            name: p[0] || '',
+            quality: Number(p[1]) || 0,
+            level: Number(p[2]) || 0,
+            class: p[3] || '',
+            subClass: p[4] || '',
+            invType: p[5] || '',
+            stack: Number(p[6]) || 0,
+            icon: p[7] || ''
+          };
+        }
+      });
+      console.log(`Found items block (${Object.keys(items).length} entries)`);
+    }
+
+    const idsBlock = /\["item_ids"\]\s*=\s*{([\s\S]*?)\n\s*},/m.exec(text);
+    if (idsBlock) {
+      idsBlock[1].split(/\r?\n/).forEach(line => {
+        const m = line.match(/\["([^\"]+)"\]\s*=\s*(\d+)/);
+        if (m) {
+          const name = m[1];
+          const id = m[2];
+          if (!items[id]) items[id] = { name };
+          else if (!items[id].name) items[id].name = name;
+        }
+      });
+      console.log(`Found item_ids block`);
+    }
+
     console.groupEnd();
-    return { history, post };
+    return { history, post, items };
   }
 })();
