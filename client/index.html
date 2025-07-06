@@ -11,6 +11,13 @@
   <p>Open DevTools (F12) to see logs for parsing and network requests.</p>
   <input type="file" id="fileInput" accept=".lua" />
   <button id="refreshBtn" disabled>Refresh Data</button>
+  <div id="convertControls">
+    <select id="formatSelect">
+      <option value="csv">CSV</option>
+      <option value="sql">SQL</option>
+    </select>
+    <button id="convertBtn" disabled>Convert</button>
+  </div>
   <div id="lastUpdated"></div>
 
   <div id="filters">
@@ -34,6 +41,8 @@
     </thead>
     <tbody></tbody>
   </table>
+
+  <pre id="logWindow"></pre>
 
   <script src="script.js"></script>
 </body>

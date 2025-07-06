@@ -39,7 +39,6 @@ async function fetchItem(realm, itemId) {
     return result;
   }
 
-
   // Some pages redirect to a slugged URL (e.g. .../item-name-<id>) which
   // axios fails to follow correctly in this environment. Perform the first
   // request with redirects disabled so we can manually follow the provided
