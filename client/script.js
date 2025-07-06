@@ -1,15 +1,25 @@
 (async () => {
   const fileInput = document.getElementById('fileInput');
   const refreshBtn = document.getElementById('refreshBtn');
+  const convertBtn = document.getElementById('convertBtn');
+  const formatSelect = document.getElementById('formatSelect');
+  const logWindow = document.getElementById('logWindow');
   const lastUpdated = document.getElementById('lastUpdated');
   const tbody = document.querySelector('#results tbody');
   let auxText = '';
   let dataMetrics = [];
 
+  function log(msg) {
+    logWindow.textContent += msg + '\n';
+  }
+
   fileInput.addEventListener('change', async e => {
+    logWindow.textContent = '';
     auxText = await e.target.files[0].text();
     console.info('Aux file loaded, size:', auxText.length);
+    log('File loaded.');
     refreshBtn.disabled = false;
+    convertBtn.disabled = false;
     await loadData();
   });
 
@@ -21,15 +31,53 @@
     refreshBtn.disabled = false;
   });
 
+  convertBtn.addEventListener('click', () => {
+    if (!auxText) {
+      log('No file loaded.');
+      return;
+    }
+    try {
+      const { history, post } = parseAux(auxText);
+      const format = formatSelect.value;
+      log(`Converting to ${format.toUpperCase()}...`);
+      let out = '';
+      if (format === 'csv') {
+        out += 'item_id,current_price,history\n';
+        Object.keys(post).forEach(id => {
+          const hist = (history[id] || []).join(';');
+          out += `${id},${post[id]},"${hist}"\n`;
+        });
+      } else {
+        Object.keys(post).forEach(id => {
+          const hist = (history[id] || []).join(';');
+          out += `INSERT INTO items (item_id,current_price,history) VALUES ('${id}',${post[id]},'${hist}');\n`;
+        });
+      }
+      const blob = new Blob([out], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `aux-data.${format}`;
+      a.click();
+      URL.revokeObjectURL(url);
+      log('Download started.');
+    } catch (err) {
+      console.error(err);
+      log('Conversion failed: ' + err.message);
+    }
+  });
+
   async function loadData() {
     console.group('Data Load');
     console.log('Starting data load...');
+    log('Parsing file...');
     const { history, post } = parseAux(auxText);
-    console.log(`History entries: ${Object.keys(history).length}`);
-    console.log(`Post entries: ${Object.keys(post).length}`);
+    log(`History entries: ${Object.keys(history).length}`);
+    log(`Post entries: ${Object.keys(post).length}`);
 
     const ids = Object.keys(post);
     const realm = 'nordanaar';
+    log('Fetching external data...');
 
     dataMetrics = await Promise.all(
       ids.map(async id => {
@@ -46,6 +94,7 @@
           ({ external, metadata } = await resp.json());
         } catch (err) {
           console.error(`Fetch failed for item ${id}:`, err.message);
+          log(`Item ${id} failed: ${err.message}`);
           external = { avgPrice:0, volume:0, globalMin:null, globalMax:null };
           metadata = { name:id, quality:0, icon:null, craftCost:null };
         }
@@ -77,6 +126,7 @@
     renderTable();
     lastUpdated.textContent = `Last updated: ${new Date().toLocaleString()}`;
     console.info('Table updated.');
+    log('Table updated.');
   }
 
   function renderTable() {
