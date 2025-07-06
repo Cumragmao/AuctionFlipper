@@ -1,0 +1,16 @@
+{
+  "metadata": {
+    "19710": { "name": "Bonereaver's Edge", "quality": 4, "icon": null, "craftCost": null },
+    "3818": { "name": "Fadeleaf", "quality": 1, "icon": null, "craftCost": null },
+    "7909": { "name": "Aquamarine", "quality": 2, "icon": null, "craftCost": null },
+    "4306": { "name": "Silk Cloth", "quality": 1, "icon": null, "craftCost": null },
+    "15280": { "name": "Wizard's Hand", "quality": 2, "icon": null, "craftCost": null }
+  },
+  "auction": {
+    "19710": { "avgPrice": 150000, "volume": 2, "globalMin": 140000, "globalMax": 160000 },
+    "3818": { "avgPrice": 800, "volume": 30, "globalMin": 700, "globalMax": 1000 },
+    "7909": { "avgPrice": 1200, "volume": 40, "globalMin": 1000, "globalMax": 1300 },
+    "4306": { "avgPrice": 300, "volume": 100, "globalMin": 200, "globalMax": 350 },
+    "15280": { "avgPrice": 5000, "volume": 5, "globalMin": 4500, "globalMax": 5500 }
+  }
+}

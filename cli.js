@@ -3,6 +3,42 @@ const fs = require('fs');
 const path = require('path');
 const { fetchItem } = require('./server/services/wowauctions');
 const { fetchItemInfo } = require('./server/services/turtleDB');
+const luaJson = require('./server/node_modules/lua-json');
+
+function parseAux(text) {
+  const tableStr = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1);
+  const data = luaJson.parse('return ' + tableStr);
+
+  const history = {};
+  const post = {};
+
+  const collect = (obj) => {
+    if (!obj) return;
+    if (obj.post) {
+      for (const [id, val] of Object.entries(obj.post)) {
+        const parts = String(val).split('#');
+        const buyout = parseFloat(parts[2] || parts[1]);
+        if (!isNaN(buyout) && buyout > 0) post[id] = buyout;
+
+        if (!isNaN(buyout)) post[id] = buyout;
+
+      }
+    }
+    if (obj.history) {
+      for (const [id, val] of Object.entries(obj.history)) {
+        const nums = String(val)
+          .split(/[#@;]/)
+          .map(Number)
+          .filter(n => !isNaN(n) && n < 1e7 && n > 0);
+          .filter(n => !isNaN(n) && n < 1e7);
+        if (!history[id]) history[id] = [];
+        history[id].push(...nums);
+      }
+    }
+  };
+
+  if (data.faction) Object.values(data.faction).forEach(collect);
+  if (data.character) Object.values(data.character).forEach(collect);
 
 function parseAux(text) {
   const history = {};
@@ -26,6 +62,7 @@ function parseAux(text) {
       if (m) post[m[1]] = Number(m[2]);
     });
   }
+
   return { history, post };
 }
 
@@ -45,6 +82,11 @@ async function main() {
     const baseId = id.split(':')[0];
     const hist = history[id] || [];
     const current = post[id];
+    if (!current || current <= 0) continue;
+    const values = hist.concat(current).filter(n => n > 0);
+    const localMin = values.length ? Math.min(...values) : current;
+    const localMax = values.length ? Math.max(...values) : current;
+    const roiLocal = current > 0 ? ((localMax - current) / current) * 100 : 0;
     const localMin = hist.length ? Math.min(...hist, current) : current;
     const localMax = hist.length ? Math.max(...hist, current) : current;
     const roiLocal = ((localMax - current) / current) * 100;
@@ -59,7 +101,9 @@ async function main() {
       metadata = { name:id, quality:0, icon:null, craftCost:null };
     }
 
+    const roiGlobal = external.globalMax && current > 0
     const roiGlobal = external.globalMax
+
       ? ((external.globalMax - current) / current) * 100
       : 0;
 
